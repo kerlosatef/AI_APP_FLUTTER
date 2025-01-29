@@ -30,4 +30,3 @@ flutter pub get
 3. Run the application:
 ```
 flutter run
-# AI_APP_FLUTTER
