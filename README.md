@@ -21,7 +21,7 @@ Kero AI is a Flutter-based chat application that allows users to communicate wit
 
 1. Clone the repository:
 ```
-git clone https://github.com/kerlosatef/AI_App.git
+git clone https://github.com/kerlosatef/AI_APP_FLUTTER
 ```
 2. Install dependencies:
 ```
