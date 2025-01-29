@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:ai_app/custom_field.dart';
 import 'package:ai_app/widget/cubit/theme_cubit.dart';
-import 'package:ai_app/widget/custome_message.dart';
 import 'package:ai_app/widget/theme_dark_light.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
