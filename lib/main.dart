@@ -3,8 +3,12 @@ import 'package:ai_app/widget/cubit/theme_cubit.dart';
 import 'package:ai_app/widget/theme_dark_light.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
+
+const apiKey = 'AIzaSyD-4NCMKl6JZszUEle__5AmgkhcFjECRI8';
 
 void main() {
+  Gemini.init(apiKey: apiKey);
   runApp(const MainApp());
 }
 
