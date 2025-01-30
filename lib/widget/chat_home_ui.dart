@@ -9,6 +9,7 @@ import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
+import 'package:lottie/lottie.dart';
 
 class ChatHomeUi extends StatefulWidget {
   const ChatHomeUi({super.key});
@@ -19,6 +20,7 @@ class ChatHomeUi extends StatefulWidget {
 
 class _ChatHomeUiState extends State<ChatHomeUi> {
   final Gemini gemini = Gemini.instance;
+  bool isLoading = false;
   ChatUser user = ChatUser(
       id: '0',
       firstName: 'User',
@@ -59,60 +61,118 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
   Widget _buildChat() {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return DashChat(
-      inputOptions: InputOptions(
-        sendButtonBuilder: (Function onSend) {
-          return IconButton(
-            onPressed: () => onSend(),
-            icon: Icon(Icons.send,
-                color: isDarkMode
-                    ? Colors.white
-                    : Colors.black), // لون مختلف حسب الـ Theme
-          );
-        },
-        inputTextStyle:
-            TextStyle(color: isDarkMode ? Colors.white : Colors.black),
-        cursorStyle:
-            CursorStyle(color: isDarkMode ? Colors.white : Colors.black),
-        inputDecoration: InputDecoration(
-          filled: true,
-          fillColor: isDarkMode
-              ? Colors.grey[800]
-              : Colors.grey[300], // خلفية الـ TextField
-          hintText: "Type a message...",
-          hintStyle: TextStyle(
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20), // نفس الـ default
-            borderSide: BorderSide.none,
+    return Stack(
+      children: [
+        DashChat(
+          inputOptions: InputOptions(
+            sendButtonBuilder: (Function onSend) {
+              return isLoading
+                  ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    )
+                  : IconButton(
+                      onPressed: isLoading ? null : () => onSend(),
+                      icon: Icon(Icons.send,
+                          color: Theme.of(context).colorScheme.onSurface),
+                    );
+            },
+            inputTextStyle:
+                TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            cursorStyle:
+                CursorStyle(color: Theme.of(context).colorScheme.onSurface),
+            inputDecoration: InputDecoration(
+              filled: true,
+              fillColor: isDarkMode
+                  ? Colors.grey[800]
+                  : Colors.grey[300], // خلفية الـ TextField
+              hintText: "Type a message...",
+              hintStyle: TextStyle(
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20), // نفس الـ default
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                  vertical: 12, horizontal: 16), // تحافظ على الحجم الافتراضي
+            ),
+            trailing: [
+              IconButton(
+                onPressed: _sendMedia,
+                icon: Icon(Icons.image,
+                    color: Theme.of(context).colorScheme.onSurface),
+              ),
+            ],
           ),
-          contentPadding: EdgeInsets.symmetric(
-              vertical: 12, horizontal: 16), // تحافظ على الحجم الافتراضي
+          messageOptions: MessageOptions(
+            currentUserContainerColor:
+                isDarkMode ? Colors.blue[800]! : Colors.blue[800]!,
+            containerColor: isDarkMode ? Colors.grey[800]! : Colors.black!,
+            textColor: isDarkMode ? Colors.white : Colors.white,
+            currentUserTextColor: isDarkMode ? Colors.white : Colors.white,
+          ),
+          currentUser: user,
+          onSend: _onSend,
+          messages: messages,
+          scrollToBottomOptions: ScrollToBottomOptions(
+            scrollToBottomBuilder: (scrollController) {
+              return Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    height: 40,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        scrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      icon: Icon(
+                        Icons.arrow_downward,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
-        trailing: [
-          IconButton(
-            onPressed: _sendMedia,
-            icon: Icon(Icons.image,
-                color: isDarkMode ? Colors.white : Colors.black),
+        if (isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.3),
+            child: Center(
+              child: Lottie.asset(
+                'assets/lottie/loading3.json',
+                width: 200,
+                height: 200,
+                repeat: true,
+                animate: true,
+                frameRate: FrameRate(60),
+              ),
+            ),
           ),
-        ],
-      ),
-      messageOptions: MessageOptions(
-        currentUserContainerColor:
-            isDarkMode ? Colors.blue[800]! : Colors.grey[300]!,
-        containerColor: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
-        textColor: isDarkMode ? Colors.white : Colors.black,
-        currentUserTextColor: isDarkMode ? Colors.white : Colors.white,
-      ),
-      currentUser: user,
-      onSend: _onSend,
-      messages: messages,
+      ],
     );
   }
 
   void _onSend(ChatMessage chatMessage) {
     setState(() {
       messages = [chatMessage, ...messages];
+      isLoading = true;
     });
     try {
       String question = chatMessage.text;
@@ -122,29 +182,44 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
       }
 
       // ignore: deprecated_member_use
-      gemini.streamGenerateContent(question, images: images).listen((event) {
-        ChatMessage? lastMessage = messages.firstOrNull;
-        if (lastMessage != null && lastMessage.user == geminiUser) {
-          lastMessage = messages.removeAt(0);
-          String response = event.content?.parts?.fold(
-                  '', (previous, current) => "$previous${current.text}") ??
-              '';
-          lastMessage.text += response;
+      gemini.streamGenerateContent(question, images: images).listen(
+        (event) {
+          ChatMessage? lastMessage = messages.firstOrNull;
+          if (lastMessage != null && lastMessage.user == geminiUser) {
+            lastMessage = messages.removeAt(0);
+            String response = event.content?.parts?.fold(
+                    '', (previous, current) => "$previous${current.text}") ??
+                '';
+            lastMessage.text += response;
+            setState(() {
+              messages = [lastMessage!, ...messages];
+            });
+          } else {
+            String response = event.content?.parts?.fold(
+                    '', (previous, current) => "$previous${current.text}") ??
+                '';
+            ChatMessage message = ChatMessage(
+                user: geminiUser, createdAt: DateTime.now(), text: response);
+            setState(() {
+              messages = [message, ...messages];
+            });
+          }
+        },
+        onDone: () {
           setState(() {
-            messages = [lastMessage!, ...messages];
+            isLoading = false;
           });
-        } else {
-          String response = event.content?.parts?.fold(
-                  '', (previous, current) => "$previous${current.text}") ??
-              '';
-          ChatMessage message = ChatMessage(
-              user: geminiUser, createdAt: DateTime.now(), text: response);
+        },
+        onError: (error) {
           setState(() {
-            messages = [message, ...messages];
+            isLoading = false;
           });
-        }
-      });
+        },
+      );
     } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
       print(e);
     }
   }
